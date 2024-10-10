@@ -1,11 +1,26 @@
-import tkinter as tk
-from tkinter import ttk
+from PyQt5.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QPushButton,
+    QWidget,
+    QMessageBox,
+    QCheckBox,
+    QGridLayout,
+    QLabel,
+    QComboBox
+)
 
+from sqlite import connect_db
 
-class HAMApp:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Home Asset Manager")
+class HAMApp(QMainWindow):
+    def __init__(self):
+
+        super().__init__()
+
+        self.setWindowTitle("Home Asset Manager")
 
         # Set columns and make all visible
         self.columns = ["Asset #",
@@ -19,46 +34,61 @@ class HAMApp:
                         "Notes"]
         self.visible_cols = self.columns.copy()
 
-        # Create Treeview
-        self.tree = ttk.Treeview(root, columns=self.columns, show='headings')
-        for col in self.columns:
-            self.tree.heading(col, text=col)
-            self.tree.column(col, stretch=tk.YES, width=100)
-        self.tree.pack(fill=tk.BOTH, expand=True)
+        # Main widget
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+        self.layout = QVBoxLayout(self.central_widget)
 
-        # # Create column selection
-        # self.column_selection = tk.StringVar(value="Select columns")
-        # self.column_dropdown = ttk.Combobox(root, textvariable=self.column_selection, values=self.columns)
-        # self.column_dropdown.pack(side=tk.LEFT, padx=10)
-        # self.column_dropdown.bind("<<ComboboxSelected>>", self.toggle_column)
+        # Table widget
+        self.table = QTableWidget()
+        self.layout.addWidget(self.table)
 
-        # Create columns selection listbox
-        self.column_selection_frame = tk.Frame(root)
-        self.column_selection_frame.pack(side=tk.LEFT, padx=10)
+        # Columns selection
+        self.column_selection = QComboBox()
+        self.column_selection.addItems(self.columns)
+        self.column_selection.setEditable(False)
+        self.layout.addWidget(self.column_selection)
 
-        self.column_listbox = tk.Listbox(self.column_selection_frame, selectmode=tk.MULTIPLE)
-        for col in self.columns:
-            self.column_listbox.insert(tk.END, col)
+        # Show selected columns
+        self.column_checkboxes = {}
+        self.checkbox_layout = QGridLayout()
+        for index, column in enumerate(self.columns):
+            checkbox = QCheckBox(column)
+            checkbox.setChecked(True)
+            checkbox.stateChanged.connect(self.update_column_visibility)
+            self.checkbox_layout.addWidget(checkbox, index // 3, index % 3)
+            self.column_checkboxes[column] = checkbox
+        self.layout.addLayout(self.checkbox_layout)
 
-        # Pre-select already visible columns
-        for index, col in enumerate(self.columns):
-            if col in self.visible_cols:
-                self.column_listbox.select_set(index)
+        # Buttons
+        self.add_button = QPushButton("Add Asset")
+        self.add_button.clicked.connect(self.add_asset)
+        self.layout.addWidget(self.add_button)
 
-        self.column_listbox.pack()
+        self.edit_button = QPushButton("Edit Asset")
+        self.edit_button.clicked.connect(self.edit_asset)
+        self.layout.addWidget(self.edit_button)
 
-        self.column_listbox.bind("<<ListboxSelect>>", self.update_visible_cols)
+        self.load_assets()
 
-    def update_visible_cols(self, event):
-        selected_indices = self.column_listbox.curselection()
-        self.visible_cols = [self.column_listbox.get(i) for i in selected_indices]
+    def load_assets(self):
+        self.table.setRowCount(0)
+        self.table.setColumnCount(len(self.columns))
+        self.table.setHorizontalHeaderLabels(self.columns)
+
+        with connect_db() as conn:
+            c = conn.cursor()
+
+            c.execute(query)
+            for row in c.fetchall():
+                row_position = self.table.rowCount()
+                self.table.insertRow(row_position)
+                for column_index, item in enumerate(row):
+                    self.table.setItem(row_position, column_index, QTableWidgetItem(str(item)))
         self.update_column_visibility()
 
     def update_column_visibility(self):
-        for col in self.columns:
-            if col in self.visible_cols:
-                self.tree.heading(col, text=col)
-                self.tree.column(col, stretch=tk.YES, width=100)
-            else:
-                self.tree.heading(col, text="")
-                self.tree.column(col, width=0)
+        for column, checkbox in self.column_checkboxes.items():
+            column_index = self.columns.index(column)
+            self.table.setColumnHidden(column_index, not checkbox.isChecked())
+
