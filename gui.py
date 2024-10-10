@@ -78,6 +78,23 @@ class HAMApp(QMainWindow):
 
         with connect_db() as conn:
             c = conn.cursor()
+            query = """
+            SELECT
+                a.asset_number,
+                l.name AS locations_name,
+                t.name AS type_name,
+                m.name AS model_name,
+                a.serial_number,
+                a.ip_address
+            FROM
+                assets a
+            JOIN
+                types t ON a.type_id = t.id
+            JOIN
+                models m ON a.model_id = m.id
+            JOIN
+                locations l ON a.location_id = l.id;
+            """
 
             c.execute(query)
             for row in c.fetchall():
