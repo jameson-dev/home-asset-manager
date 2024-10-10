@@ -125,3 +125,4 @@ class HAMApp(QMainWindow):
         dialog = QWidget
         dialog.setWindowTitle(title)
         dialog_layout = QGridLayout(dialog)
+
