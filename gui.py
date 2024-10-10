@@ -109,3 +109,19 @@ class HAMApp(QMainWindow):
             column_index = self.columns.index(column)
             self.table.setColumnHidden(column_index, not checkbox.isChecked())
 
+    def add_asset(self):
+        # Open dialog window to add new asset
+        self.asset_dialog("Add Asset")
+
+    def edit_asset(self):
+        selected_items = self.table.selectedItems()
+        if selected_items:
+            asset_number = selected_items[0].text()
+            self.asset_dialog("Edit Dialog", asset_number)
+        else:
+            QMessageBox.warning(self, "Select Asset", "Please select an asset to edit.")
+
+    def asset_dialog(self, title, asset_number=None):
+        dialog = QWidget
+        dialog.setWindowTitle(title)
+        dialog_layout = QGridLayout(dialog)
