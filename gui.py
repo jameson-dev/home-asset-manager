@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import (
 
 from sqlite import connect_db
 
+
 class HAMApp(QMainWindow):
     def __init__(self):
 
@@ -126,3 +127,67 @@ class HAMApp(QMainWindow):
         dialog.setWindowTitle(title)
         dialog_layout = QGridLayout(dialog)
 
+        dialog_layout.addWidget(QLabel("Asset Number"), 0, 0)
+        asset_number_input = QTableWidgetItem()
+        dialog_layout.addWidget(asset_number_input, 0, 1)
+
+        dialog_layout.addWidget(QLabel("Type ID"), 1, 0)
+        type_id_input = QTableWidgetItem()
+        dialog_layout.addWidget(type_id_input, 1, 1)
+
+        dialog_layout.addWidget(QLabel("Model ID"), 2, 0)
+        model_id_input = QTableWidgetItem()
+        dialog_layout.addWidget(model_id_input, 2, 1)
+
+        dialog_layout.addWidget(QLabel("Location ID"), 3, 0)
+        location_id_input = QTableWidgetItem()
+        dialog_layout.addWidget(location_id_input, 3, 1)
+
+        dialog_layout.addWidget(QLabel("Serial Number"), 4, 0)
+        serial_number_input = QTableWidgetItem()
+        dialog_layout.addWidget(serial_number_input, 4, 1)
+
+        dialog_layout.addWidget(QLabel("IP Address"), 5, 0)
+        ip_address_input = QTableWidgetItem()
+        dialog_layout.addWidget(ip_address_input, 5, 1)
+
+        if asset_number:
+            # Load existing asset data
+                with connect_db() as conn:
+                    c = conn.cursor()
+                    c.execute("SELECT type_id, model_id, location_id, serial_number, ip_address FROM assets WHERE asset_number = ?", (asset_number,))
+                    data = c.fetchone()
+                    if data:
+                        type_id_input.setText(str(data[0]))
+                        model_id_input.setText(str(data[1]))
+                        location_id_input.setText(str(data[2]))
+                        serial_number_input.setText(data[3])
+                        ip_address_input.setText(data[4])
+
+        save_button = QPushButton("Save")
+        save_button.clicked.connect(lambda: self.save_asset(asset_number, asset_number_input.text(), type_id_input.text(), model_id_input.text(), location_id_input.text(), serial_number_input.text(), ip_address_input.text()))
+        dialog_layout.addWidget(save_button, 6, 0, 1, 2)
+
+        dialog.setLayout(dialog_layout)
+        dialog.show()
+
+    def save_asset(self, old_asset_number, asset_number, type_id, model_id, location_id, serial_number, ip_address):
+        with connect_db() as conn:
+            c = conn.cursor()
+            if old_asset_number:
+                # Update existing asset
+                c.execute('''
+                UPDATE assets 
+                SET asset_number = ?, type_id = ?, model_id = ?, location_id = ?, serial_number = ?, ip_address = ? 
+                WHERE asset_number = ?
+                ''', (asset_number, type_id, model_id, location_id, serial_number, ip_address, old_asset_number))
+            else:
+                # Insert new asset
+                c.execute('''
+                INSERT INTO assets (asset_number, type_id, model_id, location_id, serial_number, ip_address) 
+                VALUES (?, ?, ?, ?, ?, ?)
+                ''', (asset_number, type_id, model_id, location_id, serial_number, ip_address))
+
+            conn.commit()
+            self.load_assets()
+            QMessageBox.information(self, "Success", "Asset saved successfully.")
